@@ -1,0 +1,12 @@
+{
+  "log_path": "./data/logs/",
+  "output_path": "./data/output/",
+  "jpacman_path": "./jpacman/jpacman-3.0.1.jar",
+  "seed": 0,
+  "verbose": false,
+  "max_map_size": [
+    20,
+    20
+  ],
+  "max_action_sequence_length": 20
+}
