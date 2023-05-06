@@ -1,7 +1,7 @@
 import argparse
 import json
 
-from src.fuzzer.fuzzer import Fuzzer
+from fuzzer.fuzzer import Fuzzer
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fuzzer for JPacman')
