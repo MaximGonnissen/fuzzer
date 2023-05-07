@@ -207,11 +207,18 @@ class Fuzzer:
         self.__verbose_log(f"JPacman command: {jpacman_command}")
 
         jpacman_process = subprocess.Popen(jpacman_command, shell=True)
-        jpacman_process.wait()
+        try:
+            jpacman_process.wait(timeout=self.config.get("jpacman_timeout"))
+            return_code = jpacman_process.returncode
+        except subprocess.TimeoutExpired:
+            jpacman_process.kill()
+            jpacman_process.wait()
+            self.logger.warning("JPacman timed out")
+            return_code = "timeout"
 
-        self.__verbose_log(f"JPacman exit code: {jpacman_process.returncode}")
+        self.__verbose_log(f"JPacman exit code: {return_code}")
 
-        self.history.append([self.iteration, jpacman_process.returncode, map_string, action_sequence])
+        self.history.append([self.iteration, return_code, map_string, action_sequence])
 
         return jpacman_process.returncode
 

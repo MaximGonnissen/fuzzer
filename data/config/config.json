@@ -8,5 +8,6 @@
     20,
     20
   ],
-  "max_action_sequence_length": 20
+  "max_action_sequence_length": 20,
+  "jpacman_timeout": 10
 }
