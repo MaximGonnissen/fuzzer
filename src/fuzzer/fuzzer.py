@@ -19,8 +19,8 @@ class Fuzzer:
     4. Generates a report of the run(s).
     """
 
-    def __init__(self, config: dict, logger: logging.Logger = None, random: Random = None, max_iterations: int = -1,
-                 max_time: int = -1):
+    def __init__(self, config: dict, logger: logging.Logger = None, random: Random = None, max_iterations: int = None,
+                 max_time: int = None):
         """
         Initializes the fuzzer.
         :param config: Configuration dictionary.
@@ -36,8 +36,8 @@ class Fuzzer:
 
         self.iteration: int = 0
         self.start_time: float = time()
-        self.max_iterations: int = max_iterations
-        self.max_time: int = max_time
+        self.max_iterations: int = max_iterations or -1
+        self.max_time: int = max_time or -1
 
         if not self.logger:
             self.__init_logger()
@@ -68,7 +68,7 @@ class Fuzzer:
                 self.logger.error("Could not create log directory: {}".format(e))
                 raise e
 
-        file_handler = logging.FileHandler(log_path or "fuzzer.log")
+        file_handler = logging.FileHandler(f"{log_path}/fuzzer.log" or "fuzzer.log")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(file_handler)
@@ -126,7 +126,7 @@ class Fuzzer:
                 self.logger.error("Could not create output directory: {}".format(e))
                 raise e
 
-        input_file = open(os.path.join(output_path, "input.map"), "w")
+        input_file = open(os.path.join(f"{output_path}/input.map", "input.map"), "w")
         input_file.write(map_string or self.generate_map_string())
 
         self.__verbose_log(f"Input file generated: {input_file.name}")
