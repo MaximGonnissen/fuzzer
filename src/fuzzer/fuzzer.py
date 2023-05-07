@@ -126,7 +126,7 @@ class Fuzzer:
                 self.logger.error("Could not create output directory: {}".format(e))
                 raise e
 
-        input_file = open(os.path.join(f"{output_path}/input.map", "input.map"), "w")
+        input_file = open(os.path.join(output_path, "input.map"), "w")
         input_file.write(map_string or self.generate_map_string())
 
         self.__verbose_log(f"Input file generated: {input_file.name}")
