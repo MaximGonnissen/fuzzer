@@ -67,7 +67,9 @@ class Fuzzer:
                 self.logger.error("Could not create log directory: {}".format(e))
                 raise e
 
-        file_handler = logging.FileHandler(f"{log_path}/fuzzer.log" or "fuzzer.log")
+        open(f"{log_path}/fuzzer.log", "w").write("")
+
+        file_handler = logging.FileHandler(f"{log_path}/fuzzer.log")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(file_handler)
