@@ -2,7 +2,7 @@
   "log_path": "./data/logs/",
   "output_path": "./data/output/",
   "jpacman_path": "./jpacman/jpacman-3.0.1.jar",
-  "seed": 0,
+  "seed": null,
   "verbose": false,
   "max_map_size": [
     20,
