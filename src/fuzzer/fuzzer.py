@@ -84,7 +84,7 @@ class Fuzzer:
         """
         self.random = Random(self.config.get("seed") or None)
 
-        self.logger.debug(f"Random object initialized with seed {self.random.seed}")
+        self.logger.debug(f"Random object initialized.")
 
     def __verbose_log(self, message: str) -> None:
         """
