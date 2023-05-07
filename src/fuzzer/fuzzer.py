@@ -237,7 +237,8 @@ class Fuzzer:
             self.iteration += 1
             self.run_jpacman()
 
-        self.logger.info(f"Fuzzer finished after {self.runtime()} seconds")
+        self.logger.info(
+            f"Fuzzer finished after {self.runtime()}(/{self.max_time}) seconds | {self.iteration}(/{self.max_iterations}) iterations")
 
         if report:
             self.__generate_report()
