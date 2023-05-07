@@ -1,6 +1,5 @@
 import json
 import logging
-import math
 import os
 import subprocess
 from random import Random
@@ -242,38 +241,33 @@ class Fuzzer:
 
         output_path = self.config.get("output_path")
 
-        max_map_width = self.config.get("max_map_size")[0]
-        max_action_sequence_length = self.config.get("max_action_sequence_length")
+        statistics = {
+            "iterations": self.iteration,
+            "exit codes": {}
+        }
 
-        map_bar = "-" * max_map_width
-        action_bar = "-" * max_action_sequence_length
+        exit_codes = [history_item[1] for history_item in self.history]
+
+        for exit_code in set(exit_codes):
+            statistics["exit codes"][exit_code] = exit_codes.count(exit_code)
 
         with open(os.path.join(output_path, "report.md"), "w") as report_file:
             report_file.write(f"# JPacman Fuzzer Report\n\n")
             report_file.write(f"## Configuration\n\n")
             report_file.write(f"```json\n{json.dumps(self.config, indent=4)}\n```\n\n")
+            report_file.write(f"## Arguments\n\n")
+            report_file.write(f"```bash\n--max_iterations: {self.max_iterations}\n")
+            report_file.write(f"--max_time: {self.max_time}\n```\n\n")
+            report_file.write(f"## Statistics\n\n")
+            report_file.write(f"```json\n{json.dumps(statistics, indent=4)}\n```\n\n")
             report_file.write(f"## History\n\n")
-            report_file.write(f"| Iteration | Exit Code | Map String {map_bar} | Action Sequence {action_bar} |\n")
-            report_file.write(f"| --------- | --------- | {'-' * 11}{map_bar} | {'-' * 16}{action_bar} |\n")
+            report_file.write(f"| Iteration | Exit Code | Map String | Action Sequence |\n")
+            report_file.write(f"| --------- | --------- | ---------- | --------------- |\n")
 
             for entry in self.history:
-                iteration = str(entry[0])
-                exit_code = str(entry[1])
-                map_string = str(entry[2])
-                action_sequence = str(entry[3])
-
-                iteration_to_pad = 9 - len(iteration)
-                exit_code_to_pad = 9 - len(exit_code)
-                map_string_to_pad = (11 + max_map_width) - len(map_string)
-                action_sequence_to_pad = (16 + max_action_sequence_length) - len(action_sequence)
-
-                iteration_string = f"{math.floor(iteration_to_pad / 2)}{iteration}{math.ceil(iteration_to_pad / 2)}"
-                exit_code_string = f"{math.floor(exit_code_to_pad / 2)}{exit_code}{math.ceil(exit_code_to_pad / 2)}"
-                map_string_string = f"{math.floor(map_string_to_pad / 2)}{map_string}{math.ceil(map_string_to_pad / 2)}"
-                action_sequence_string = f"{math.floor(action_sequence_to_pad / 2)}{action_sequence}{math.ceil(action_sequence_to_pad / 2)}"
-
-                report_file.write(
-                    f"| {iteration_string} | {exit_code_string} | {map_string_string} | {action_sequence_string} |\n")
+                map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
+                report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} |\n")
 
         self.logger.info(f"Report generated in {time() - report_start_time} seconds")
         self.logger.info(f"Report generated at {os.path.join(output_path, 'report.md')}")
+
