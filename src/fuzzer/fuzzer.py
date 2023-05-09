@@ -5,7 +5,8 @@ import subprocess
 from random import Random
 from time import time
 
-from .enums import Action, MapItem
+from .enums import Action
+from .map_string_generator import map_string_generators
 
 
 class Fuzzer:
@@ -43,6 +44,10 @@ class Fuzzer:
 
         if not self.random:
             self.__init_random()
+
+        self.map_string_generator = map_string_generators[int(self.config.get("map_gen_format"))](self.random,
+                                                                                                  self.config,
+                                                                                                  self.logger)
 
         self.logger.debug("Fuzzer initialized")
 
@@ -128,39 +133,9 @@ class Fuzzer:
                 raise e
 
         input_file = open(os.path.join(output_path, "input.map"), "w")
-        input_file.write(map_string or self.generate_map_string())
+        input_file.write(map_string or self.map_string_generator())
 
         self.__verbose_log(f"Input file generated: {input_file.name}")
-
-    def generate_map_string(self) -> str:
-        """
-        Generates a map string.
-        :return: Map string in a JPacman compatible format.
-        """
-        max_map_size = self.config.get("max_map_size")
-        max_width = max_map_size[0]
-        max_height = max_map_size[1]
-
-        actual_width = self.random.randint(1, max_width)
-        actual_height = self.random.randint(1, max_height)
-
-        map_string = ""
-
-        for y in range(actual_height):
-            for x in range(actual_width):
-                map_string += self.__random_map_item().value
-            map_string += "\n"
-
-        self.__verbose_log(f"Map string generated with size {actual_width}x{actual_height}:\n{map_string}")
-
-        return map_string
-
-    def __random_map_item(self) -> MapItem:
-        """
-        Generates a random map item.
-        :return: Random map item.
-        """
-        return self.random.choice(list(MapItem))
 
     def generate_action_sequence(self) -> str:
         """
@@ -191,7 +166,7 @@ class Fuzzer:
         Runs JPacman with the generated input.
         :return: Exit code of JPacman.
         """
-        map_string = self.generate_map_string()
+        map_string = self.map_string_generator()
         action_sequence = self.generate_action_sequence()
 
         self.generate_input(map_string)
