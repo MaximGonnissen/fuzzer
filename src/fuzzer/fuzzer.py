@@ -218,13 +218,15 @@ class Fuzzer:
             self.iteration += 1
             self.run_jpacman()
 
+        runtime = self.runtime()
+
         self.logger.info(
-            f"Fuzzer finished after {self.runtime()}(/{self.max_time}) seconds | {self.iteration}(/{self.max_iterations}) iterations")
+            f"Fuzzer finished after {runtime}(/{self.max_time}) seconds | {self.iteration}(/{self.max_iterations}) iterations")
 
         if report:
-            self.generate_report()
+            self.generate_report(runtime=runtime)
 
-    def generate_report(self) -> None:
+    def generate_report(self, runtime: float = None) -> None:
         """
         Generates a report.
         """
@@ -236,6 +238,9 @@ class Fuzzer:
             "iterations": self.iteration,
             "exit codes": {}
         }
+
+        if runtime:
+            statistics["runtime"] = runtime
 
         exit_codes = [history_item[1] for history_item in self.history]
 
@@ -259,6 +264,7 @@ class Fuzzer:
                 map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
                 report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} | {entry[4]} |\n")
 
+            report_file.write(f"\n\n> Report generated in {time() - report_start_time} seconds.")
+
         self.logger.info(f"Report generated in {time() - report_start_time} seconds")
         self.logger.info(f"Report generated at {os.path.join(output_path, 'report.md')}")
-
