@@ -52,3 +52,33 @@ Run from the root directory of the project with following optional arguments:
 ```shell
 python ./src/main.py --config data/config/config.json --max_iterations 1000 --max_time 180 --generate_report True
 ```
+
+## Output
+
+The output of the fuzzer can be found in the `data/output` directory, in the `report.md` file.
+
+Markdown was chosen as the output format because it is easy to read, well-supported, and can be converted to other
+formats easily.
+
+## Structure
+
+Inside the fuzzer package, one can find a number of different Python files responsible for different aspects of the
+fuzzer.
+
+### fuzzer.py
+
+The fuzzer itself, responsible for fuzzing, as well as generating the report.
+
+### enums.py
+
+Contains the Action & MapItem enums, which are used by the fuzzer and map string generators to provide valid inputs for
+the JPacman executable.
+
+### map_string_generator.py
+
+Contains a variety of MapStringGenerator classes, which are used to generate random maps for the fuzzer.
+
+A BaseMapStringGenerator class is provided, which can be extended to create new map string generators. This class is
+used by various other map string generators in this file. Each generator is prefixed with C#, where the C stands for
+"Correctness", and the # is the measure of correctness. The higher the number, the more correct the map string that is
+generated. This corresponds with the map_gen_format in the config file.
