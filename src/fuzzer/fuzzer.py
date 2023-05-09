@@ -222,9 +222,9 @@ class Fuzzer:
             f"Fuzzer finished after {self.runtime()}(/{self.max_time}) seconds | {self.iteration}(/{self.max_iterations}) iterations")
 
         if report:
-            self.__generate_report()
+            self.generate_report()
 
-    def __generate_report(self) -> None:
+    def generate_report(self) -> None:
         """
         Generates a report.
         """
