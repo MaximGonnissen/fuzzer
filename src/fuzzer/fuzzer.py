@@ -285,13 +285,13 @@ class Fuzzer:
             report_file.write(f"| --------- | --------- | ---------- | --------------- | ------ | ----- |\n")
 
             for entry in self.history:
-                map_string = entry[2]
-                if len(map_string) > 0:
-                    map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
-                output = entry[4]
-                if output:
-                    output = "`" + output.replace('\n', '`<br>`')[:-1]
-                report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} | {output} | {entry[5]} |\n")
+                for i in range(len(entry)):
+                    if entry[i] not in ["", None]:
+                        if str(entry[i]).count("\n") > 1:
+                            entry[i] = ("`" + str(entry[i]).replace('\n', '`<br>`')[:-1]).replace("``", "")
+                        else:
+                            entry[i] = "`" + str(entry[i]).replace('\n', "\\n") + "`"
+                report_file.write(f"| {entry[0]} | {entry[1]} | {entry[2]} | {entry[3]} | {entry[4]} | {entry[5]} |\n")
 
             report_file.write(f"\n\n> Report generated in {time() - report_start_time} seconds.")
 
