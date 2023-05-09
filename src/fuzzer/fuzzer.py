@@ -164,13 +164,16 @@ class Fuzzer:
         """
         return self.random.choice(list(Action))
 
-    def run_jpacman(self) -> int:
+    def run_jpacman(self, map_file_path: str = None, action_sequence: str = None) -> int:
         """
         Runs JPacman with the generated input.
         :return: Exit code of JPacman.
         """
-        map_string = self.map_string_generator()
-        action_sequence = self.generate_action_sequence()
+        if not map_file_path:
+            map_string = self.map_string_generator()
+        else:
+            map_string = open(map_file_path, "r").read()
+        action_sequence = action_sequence or self.generate_action_sequence()
 
         self.generate_input(map_string)
 
@@ -261,7 +264,9 @@ class Fuzzer:
             report_file.write(f"| --------- | --------- | ---------- | --------------- | ------ |\n")
 
             for entry in self.history:
-                map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
+                map_string = entry[2]
+                if len(map_string) > 0:
+                    map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
                 report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} | {entry[4]} |\n")
 
             report_file.write(f"\n\n> Report generated in {time() - report_start_time} seconds.")
