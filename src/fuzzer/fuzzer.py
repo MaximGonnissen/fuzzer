@@ -211,6 +211,9 @@ class Fuzzer:
 
         self.start_time = time()
 
+        if self.max_time <= 0 and self.max_iterations <= 0:
+            self.logger.warning("No limit specified, the fuzzer will run indefinitely!")
+
         while not self.limit_reached():
             self.iteration += 1
             self.run_jpacman()
