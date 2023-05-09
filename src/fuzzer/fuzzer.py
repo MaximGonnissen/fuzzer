@@ -184,21 +184,21 @@ class Fuzzer:
 
         self.__verbose_log(f"JPacman command: {jpacman_command}")
 
-        jpacman_process = subprocess.Popen(jpacman_command, shell=True)
         try:
-            jpacman_process.wait(timeout=self.config.get("jpacman_timeout"))
+            jpacman_process = subprocess.run(jpacman_command, timeout=self.config.get("jpacman_timeout"), text=True,
+                                             capture_output=True)
             return_code = jpacman_process.returncode
+            process_output = jpacman_process.stdout + jpacman_process.stderr
         except subprocess.TimeoutExpired:
-            jpacman_process.kill()
-            jpacman_process.wait()
             self.logger.warning("JPacman timed out")
             return_code = "timeout"
+            process_output = ""
 
         self.__verbose_log(f"JPacman exit code: {return_code}")
 
-        self.history.append([self.iteration, return_code, map_string, action_sequence])
+        self.history.append([self.iteration, return_code, map_string, action_sequence, process_output])
 
-        return jpacman_process.returncode
+        return return_code
 
     def run(self, report: bool = True, clear_history: bool = True) -> None:
         """
@@ -252,12 +252,12 @@ class Fuzzer:
             report_file.write(f"## Statistics\n\n")
             report_file.write(f"```json\n{json.dumps(statistics, indent=4)}\n```\n\n")
             report_file.write(f"## History\n\n")
-            report_file.write(f"| Iteration | Exit Code | Map String | Action Sequence |\n")
-            report_file.write(f"| --------- | --------- | ---------- | --------------- |\n")
+            report_file.write(f"| Iteration | Exit Code | Map String | Action Sequence | Output |\n")
+            report_file.write(f"| --------- | --------- | ---------- | --------------- | ------ |\n")
 
             for entry in self.history:
                 map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
-                report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} |\n")
+                report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} | {entry[4]} |\n")
 
         self.logger.info(f"Report generated in {time() - report_start_time} seconds")
         self.logger.info(f"Report generated at {os.path.join(output_path, 'report.md')}")
