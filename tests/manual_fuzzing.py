@@ -1,11 +1,13 @@
 import json
+import os
 
 from src.fuzzer.fuzzer import Fuzzer
 
 maps_directory = "./tests/test_maps/"
 
-cases = [
-    ["test1.map", "Q"]
+sequences = [
+    "Q",
+    "SQ"
 ]
 
 if __name__ == '__main__':
@@ -15,7 +17,10 @@ if __name__ == '__main__':
 
     fuzzer = Fuzzer(config=config)
 
-    for case in cases:
-        fuzzer.run_jpacman(maps_directory + case[0], case[1])
+    maps = os.listdir(maps_directory)
+
+    for input_map in maps:
+        for sequence in sequences:
+            fuzzer.run_jpacman(maps_directory + input_map, sequence)
 
     fuzzer.generate_report()
