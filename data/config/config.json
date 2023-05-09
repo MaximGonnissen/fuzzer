@@ -8,6 +8,7 @@
     20,
     20
   ],
+  "map_gen_format": "0",
   "max_action_sequence_length": 20,
   "jpacman_timeout": 10
 }
