@@ -164,7 +164,7 @@ class Fuzzer:
         """
         return self.random.choice(list(Action))
 
-    def run_jpacman(self, map_file_path: str = None, action_sequence: str = None) -> int:
+    def run_jpacman(self, map_file_path: str = None, action_sequence: str = None, note: str = None) -> int:
         """
         Runs JPacman with the generated input.
         :return: Exit code of JPacman.
@@ -199,7 +199,9 @@ class Fuzzer:
 
         self.__verbose_log(f"JPacman exit code: {return_code}")
 
-        self.history.append([self.iteration, return_code, map_string, action_sequence, process_output])
+        self.iteration += 1
+
+        self.history.append([self.iteration, return_code, map_string, action_sequence, process_output, note])
 
         return return_code
 
@@ -218,7 +220,6 @@ class Fuzzer:
             self.logger.warning("No limit specified, the fuzzer will run indefinitely!")
 
         while not self.limit_reached():
-            self.iteration += 1
             self.run_jpacman()
 
         runtime = self.runtime()
@@ -239,7 +240,8 @@ class Fuzzer:
 
         statistics = {
             "iterations": self.iteration,
-            "exit codes": {}
+            "exit codes": {},
+            "errors": {}
         }
 
         if runtime:
@@ -250,8 +252,27 @@ class Fuzzer:
         for exit_code in set(exit_codes):
             statistics["exit codes"][exit_code] = exit_codes.count(exit_code)
 
+        errors = [history_item[4] for history_item in self.history if history_item[1] != 0]
+
+        errors_counted = {}
+        for error in set(errors):
+            if len(error) > 50:
+                error = error[:50] + "..."
+            errors_counted[error] = errors.count(error)
+
+        # Sort errors by count
+        statistics["errors"] = {error: count for error, count in
+                                sorted(errors_counted.items(), key=lambda item: item[1], reverse=True)}
+
         with open(os.path.join(output_path, "report.md"), "w") as report_file:
             report_file.write(f"# JPacman Fuzzer Report\n\n")
+
+            report_file.write(f"## Table of Contents\n\n")
+            report_file.write(f"* [Configuration](#configuration)\n")
+            report_file.write(f"* [Arguments](#arguments)\n")
+            report_file.write(f"* [Statistics](#statistics)\n")
+            report_file.write(f"* [History](#history)\n")
+
             report_file.write(f"## Configuration\n\n")
             report_file.write(f"```json\n{json.dumps(self.config, indent=4)}\n```\n\n")
             report_file.write(f"## Arguments\n\n")
@@ -260,14 +281,17 @@ class Fuzzer:
             report_file.write(f"## Statistics\n\n")
             report_file.write(f"```json\n{json.dumps(statistics, indent=4)}\n```\n\n")
             report_file.write(f"## History\n\n")
-            report_file.write(f"| Iteration | Exit Code | Map String | Action Sequence | Output |\n")
-            report_file.write(f"| --------- | --------- | ---------- | --------------- | ------ |\n")
+            report_file.write(f"| Iteration | Exit Code | Map String | Action Sequence | Output | Notes |\n")
+            report_file.write(f"| --------- | --------- | ---------- | --------------- | ------ | ----- |\n")
 
             for entry in self.history:
                 map_string = entry[2]
                 if len(map_string) > 0:
                     map_string = "`" + entry[2].replace('\n', '`<br>`')[:-1]
-                report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} | {entry[4]} |\n")
+                output = entry[4]
+                if output:
+                    output = "`" + output.replace('\n', '`<br>`')[:-1]
+                report_file.write(f"| {entry[0]} | {entry[1]} | {map_string} | {entry[3]} | {output} | {entry[5]} |\n")
 
             report_file.write(f"\n\n> Report generated in {time() - report_start_time} seconds.")
 
