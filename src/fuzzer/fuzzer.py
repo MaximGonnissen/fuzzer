@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import subprocess
+from logging import Logger
 from random import Random
 from time import time
 
@@ -19,16 +20,18 @@ class Fuzzer:
     4. Generates a report of the run(s).
     """
 
-    def __init__(self, config: dict, logger: logging.Logger = None, random: Random = None, max_iterations: int = None,
+    def __init__(self, config: dict, logger: Logger = None, random: Random = None, max_iterations: int = None,
                  max_time: int = None):
         """
         Initializes the fuzzer.
         :param config: Configuration dictionary.
         :param logger: Logger to use. If None, a new logger will be created.
         :param random: Random object to use. If None, a new random object will be created.
+        :param max_iterations: Maximum number of iterations to run. If None, the fuzzer will run indefinitely (or until the maximum time is reached).
+        :param max_time: Maximum time to run in seconds. If None, the fuzzer will run indefinitely (or until the maximum iterations are reached).
         """
         self.config: dict = config
-        self.logger: logging.Logger = logger
+        self.logger: Logger = logger
         self.random: Random = random
         self.verbose: bool = False
 
