@@ -19,78 +19,24 @@ The default configuration can be found in `data/config/config.json`.
 
 Example with information:
 
-```json
+```yaml
 {
-  "log_path": "./data/logs/",
-  --
-  Path
-  to
-  store
-  logs
-  "output_path": "./data/output/",
-  --
-  Path
-  to
-  store
-  output
-  (e.g.
-  generated
-  maps
-  and
-  the
-  report)
-  "jpacman_path": "./jpacman/jpacman-3.0.1.jar",
-  --
-  Path
-  to
-  JPacman
-  executable
-  "seed": null,
-  --
-  Seed
-  for
-  the
-  random
-  generator,
-  null
-  for
-  random
-  seed
-  "verbose": false,
-  --
-  Whether
-  to
-  print
-  verbose
-  output
-  "max_map_size": [
-    --
-    Maximum
-    map
-    size
-    as
-    [
-      width,
-      height
-    ]
+  "log_path": "./data/logs/",                         # Path to store logs
+  "output_path": "./data/output/",                    # Path to store output  (e.g. generated maps and the report)
+  "jpacman_path": "./jpacman/jpacman-3.0.1.jar",      # Path to JPacman executable
+  "seed": null,                                       # Seed for the random generator, null for random seed
+  "verbose": false,                                   # Whether to print verbose output
+  "max_map_size": [ # Maximum map size (as a list of [width, height])
     20,
     20
   ],
-  "max_action_sequence_length": 20,
-  --
-  Maximum
-  length
-  of
-  the
-  action
-  sequence
-  "jpacman_timeout": 10,
-  --
-  Timeout
-  for
-  JPacman
-  in
-  seconds
+  "map_gen_format": "0",                              # Map generation format, a measure of correctness
+  # 0: Random binary string map
+  # 1: Random ascii string map
+  # 2: Random choice of valid map characters
+  # 3: 2 + valid number of players
+  "max_action_sequence_length": 20,                   # Maximum length of the action sequence
+  "jpacman_timeout": 10,                              # Timeout for JPacman in seconds
 }
 ```
 
