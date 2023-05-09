@@ -32,7 +32,7 @@ Example with information:
   ],
   "map_gen_format": "0",                              # Map generation format, a measure of correctness
   # 0: Random binary string map
-  # 1: Random ascii string map
+  # 1: Random alphabetical string map
   # 2: Random choice of valid map characters
   # 3: 2 + valid number of players
   "max_action_sequence_length": 20,                   # Maximum length of the action sequence
