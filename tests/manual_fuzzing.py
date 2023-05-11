@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     for input_map in maps:
         for sequence in sequences:
-            fuzzer.run_jpacman(maps_directory + input_map, sequence, f"input_map: {input_map}")
+            map_string = open(maps_directory + input_map, "r").read()
+            fuzzer.run_jpacman(map_string, sequence, f"input_map: {input_map}")
 
     fuzzer.generate_report()

@@ -121,6 +121,7 @@ class Fuzzer:
     def generate_input(self, map_string: str = None) -> None:
         """
         Generates a map input file and outputs it into the output directory under the name input.map.
+        :param map_string: Map string to use. If None, a new map string will be generated.
         """
         output_path = self.config.get("output_path")
 
@@ -170,15 +171,15 @@ class Fuzzer:
         """
         return self.random.choice(list(Action))
 
-    def run_jpacman(self, map_file_path: str = None, action_sequence: str = None, note: str = None) -> int:
+    def run_jpacman(self, map_string: str = None, action_sequence: str = None, note: str = None) -> int:
         """
         Runs JPacman with the generated input.
+        :param map_string: Map string to use. If None, a new map string will be generated.
+        :param action_sequence: Action sequence to use. If None, a new action sequence will be generated.
+        :param note: Note to add to the history entry.
         :return: Exit code of JPacman.
         """
-        if not map_file_path:
-            map_string = self.map_string_generator()
-        else:
-            map_string = open(map_file_path, "r").read()
+        map_string = map_string or self.map_string_generator()
         action_sequence = action_sequence or self.generate_action_sequence()
 
         self.generate_input(map_string)
