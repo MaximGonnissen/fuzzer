@@ -118,7 +118,7 @@ class C3MapStringGenerator(C2MapStringGenerator):
     """
     Generator for map strings with correctness 3.
 
-    Correctness 2 + valid number of players (1).
+    Correctness 2 + valid number of players (1) + valid number of food (>0).
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -129,7 +129,33 @@ class C3MapStringGenerator(C2MapStringGenerator):
         super()._pre_generate(*args, **kwargs)
         self.player_generated = False
 
+    def _post_generate(self, *args, **kwargs) -> None:
+        super()._post_generate(*args, **kwargs)
+
+        # Ensure there is at least 1 food item to prevent map being invalid.
+        if self.map_string.count(MapItem.FOOD.value) == 0:
+            if self.map_string.count(MapItem.EMPTY.value) > 0:
+                self.map_string = self.map_string.replace(MapItem.EMPTY.value, MapItem.FOOD.value, 1)
+            elif self.map_string.count(MapItem.WALL.value) > 0:
+                self.map_string = self.map_string.replace(MapItem.WALL.value, MapItem.FOOD.value, 1)
+            elif self.map_string.count(MapItem.MONSTER.value) > 0:
+                self.map_string = self.map_string.replace(MapItem.MONSTER.value, MapItem.FOOD.value, 1)
+            else:
+                self.logger.warning("Could not find a valid character to replace with food.")
+
+        # Ensure at least 1 player is generated.
+        if self.map_string.count(MapItem.PLAYER.value) == 0:
+            if self.map_string.count(MapItem.EMPTY.value) > 0:
+                self.map_string = self.map_string.replace(MapItem.EMPTY.value, MapItem.PLAYER.value, 1)
+            elif self.map_string.count(MapItem.WALL.value) > 0:
+                self.map_string = self.map_string.replace(MapItem.WALL.value, MapItem.PLAYER.value, 1)
+            elif self.map_string.count(MapItem.MONSTER.value) > 0:
+                self.map_string = self.map_string.replace(MapItem.MONSTER.value, MapItem.PLAYER.value, 1)
+            else:
+                self.logger.warning("Could not find a valid character to replace with player.")
+
     def _generate_char(self, *args, **kwargs) -> str:
+        # Ensure at most 1 player is generated.
         if not self.player_generated:
             map_item = super()._generate_char(*args, **kwargs)
             if map_item == MapItem.PLAYER.value:
