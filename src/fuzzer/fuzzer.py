@@ -154,7 +154,8 @@ class Fuzzer:
             action_sequence += self.__random_action().value
 
         # Ensure action sequence ends with exit to prevent JPacman from hanging
-        action_sequence = action_sequence[:-1] + "E"
+        if self.config.get("map_gen_format") >= 3:
+            action_sequence = action_sequence[:-1] + "E"
 
         self.__verbose_log(f"Action sequence generated: {action_sequence}")
 
