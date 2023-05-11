@@ -363,13 +363,13 @@ class Fuzzer:
                 for j in range(len(action_sequence)):
                     for map_item in MapItem:
                         if not mutate_action:
-                            new_map_string = map_string[:j] + map_item.value + map_string[j + 1:]
-                            note = f"From iteration {previous_iteration}: Mutated {map_item} at index {i} to {map_item.value}."
+                            note = f"From iteration {previous_iteration}: Mutated {map_string[i]} at index {i} to {map_item.value} ({map_item})."
+                            new_map_string = map_string[:i] + map_item.value + map_string[i + 1:]
                         for action in Action:
                             if mutate_action:
+                                note = f"From iteration {previous_iteration}: Mutated {action_sequence[j]} at index {j} to {action.value} ({action})."
                                 new_action_sequence = new_action_sequence[:j] + action.value + new_action_sequence[
                                                                                                j + 1:]
-                                note = f"From iteration {previous_iteration}: Mutated {action} at index {j} to {action.value}."
 
                             hash_value = hash_inputs(new_map_string, new_action_sequence)
 
