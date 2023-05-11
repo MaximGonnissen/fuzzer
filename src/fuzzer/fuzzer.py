@@ -407,8 +407,7 @@ class Fuzzer:
 
         possible_mutations = (len(initial_map_string) * len(MapItem)) * (len(initial_action_sequence) * len(Action))
 
-        self.logger.info(
-            "Progress does not take into account maximum depth of the mutation tree, and thus may be inaccurate.")
+        self.run_jpacman(map_string=initial_map_string, action_sequence=initial_action_sequence, note="Initial setup.")
 
         mutate(initial_map_string, initial_action_sequence)
 
