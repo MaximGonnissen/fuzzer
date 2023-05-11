@@ -71,11 +71,11 @@ class C0MapStringGenerator(BaseMapStringGenerator):
 
     def _generate(self, *args, **kwargs) -> None:
         max_map_size = self.config.get("max_map_size")
-        max_width = max_map_size[0]
-        max_height = max_map_size[1]
+        max_width = kwargs.get("max_width") or max_map_size[0]
+        max_height = kwargs.get("max_height") or max_map_size[1]
 
-        actual_width = self.random.randint(1, max_width)
-        actual_height = self.random.randint(1, max_height)
+        actual_width = kwargs.get("width") or self.random.randint(kwargs.get("min_width") or 1, max_width)
+        actual_height = kwargs.get("height") or self.random.randint(kwargs.get("min_height") or 1, max_height)
 
         for y in range(actual_height):
             for x in range(actual_width):
