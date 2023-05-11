@@ -6,7 +6,7 @@ from logging import Logger
 from random import Random
 from time import time
 
-from .enums import Action
+from .enums import Action, MapItem
 from .map_string_generator import map_string_generators
 
 
@@ -118,7 +118,7 @@ class Fuzzer:
         """
         return (0 <= self.max_iterations <= self.iteration) or (0 <= self.max_time <= self.runtime())
 
-    def generate_input(self, map_string: str = None) -> None:
+    def generate_input(self, map_string: str) -> None:
         """
         Generates a map input file and outputs it into the output directory under the name input.map.
         :param map_string: Map string to use. If None, a new map string will be generated.
@@ -139,7 +139,7 @@ class Fuzzer:
                 raise e
 
         input_file = open(os.path.join(output_path, "input.map"), "w")
-        input_file.write(map_string or self.map_string_generator())
+        input_file.write(map_string)
 
         self.__verbose_log(f"Input file generated: {input_file.name}")
 
@@ -179,8 +179,11 @@ class Fuzzer:
         :param note: Note to add to the history entry.
         :return: Exit code of JPacman.
         """
-        map_string = map_string or self.map_string_generator()
-        action_sequence = action_sequence or self.generate_action_sequence()
+        if map_string is None:
+            map_string = self.map_string_generator()
+
+        if action_sequence is None:
+            action_sequence = self.generate_action_sequence()
 
         self.generate_input(map_string)
 
@@ -282,6 +285,125 @@ class Fuzzer:
         while not self.limit_reached():
             self.run_jpacman()
             progress_report()
+
+        self.__finish_run(generate_report=generate_report)
+
+    def mutate_run(self, initial_map_string: str, initial_action_sequence: str, generate_report: bool = True,
+                   clear_history: bool = True, update_interval: int = 20) -> None:
+        """
+        Performs a run with all possible mutations of the input map and action sequence.
+        :param initial_map_string: Input map string.
+        :param initial_action_sequence: Action sequence string.
+        :param generate_report: Whether to generate a report.
+        :param clear_history: Whether to clear the history before running.
+        :param update_interval: Interval in seconds to update the progress report.
+        """
+
+        def hash_inputs(new_map_string: str, new_action_sequence: str) -> int:
+            """
+            Hashes the input map and action sequence.
+            :return: Hash of the input map and action sequence.
+            """
+            return hash(new_map_string + new_action_sequence)
+
+        def previously_mutated(hash_value: int) -> bool:
+            """
+            Checks if the input map and action sequence have been previously mutated.
+            :return: Whether the input map and action sequence have been previously mutated.
+            """
+            return hash_value in self.mutation_history
+
+        def progress_report():
+            """
+            Prints the progress of the fuzzer every update_interval seconds.
+            """
+            nonlocal update_interval
+            nonlocal possible_mutations
+
+            if update_interval == -1:
+                return
+
+            if time() - self.last_progress_report >= update_interval:
+                self.last_progress_report = time()
+
+                progress = len(self.mutation_history) / possible_mutations
+
+                progress_bar = "#" * int(progress * 20)
+                progress_bar += " " * (20 - len(progress_bar))
+                progress_update = f"Progress: [{progress_bar}] {int(progress * 100)}% -- Elapsed: {self.runtime()}"
+
+                self.logger.info(progress_update)
+
+        def mutate(map_string: str, action_sequence: str, mutate_action: bool = False, depth: int = 0,
+                   previous_iteration: int = None) -> None:
+            """
+            Mutates the input map and action sequence and runs JPacman -- recursively.
+            :param map_string: Input map string.
+            :param action_sequence: Action sequence string.
+            :param mutate_action: Whether to mutate the action sequence if true, or the map if false.
+            :param depth: Current depth of the recursion.
+            :param previous_iteration: Previous iteration. Used for the note.
+            """
+            new_map_string = map_string[:]
+            new_action_sequence = action_sequence[:]
+
+            previous_iteration = previous_iteration or self.iteration
+            note = ""
+
+            for i in range(len(map_string)):
+                for j in range(len(action_sequence)):
+                    for map_item in MapItem:
+                        if not mutate_action:
+                            new_map_string = map_string[:j] + map_item.value + map_string[j + 1:]
+                            note = f"From iteration {previous_iteration}: Mutated {map_item} at index {i} to {map_item.value}."
+                        for action in Action:
+                            if mutate_action:
+                                new_action_sequence = new_action_sequence[:j] + action.value + new_action_sequence[
+                                                                                               j + 1:]
+                                note = f"From iteration {previous_iteration}: Mutated {action} at index {j} to {action.value}."
+
+                            hash_value = hash_inputs(new_map_string, new_action_sequence)
+
+                            if previously_mutated(hash_value):
+                                continue
+
+                            self.mutation_history.append(hash_value)
+
+                            if not self.limit_reached():
+                                self.run_jpacman(map_string=new_map_string, action_sequence=new_action_sequence,
+                                                 note=note)
+                                progress_report()
+                            else:
+                                return
+
+                            previous_iteration = self.iteration
+
+                            mutate(new_map_string, new_action_sequence, mutate_action=not mutate_action,
+                                   depth=depth + 1, previous_iteration=previous_iteration)
+
+                            if not mutate_action:
+                                # No need to mutate the action sequence if we're mutating the map.
+                                break
+                        if mutate_action:
+                            # No need to mutate the map if we're mutating the action sequence.
+                            break
+                    if not mutate_action:
+                        # No need to iterate through the action sequence if we're mutating the map.
+                        break
+                if mutate_action:
+                    # No need to iterate through the map if we're mutating the action sequence.
+                    break
+
+        self.__prep_run(clear_history=clear_history)
+
+        possible_mutations = (len(initial_map_string) * len(MapItem)) * (len(initial_action_sequence) * len(Action))
+
+        self.logger.info(
+            "Progress does not take into account maximum depth of the mutation tree, and thus may be inaccurate.")
+
+        mutate(initial_map_string, initial_action_sequence)
+
+        self.__finish_run(generate_report=generate_report)
 
     def generate_report(self, runtime: float = None) -> None:
         """
