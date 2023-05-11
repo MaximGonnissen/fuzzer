@@ -48,9 +48,9 @@ class Fuzzer:
         if not self.random:
             self.__init_random()
 
-        self.map_string_generator = map_string_generators[int(self.config.get("map_gen_format"))](self.random,
-                                                                                                  self.config,
-                                                                                                  self.logger)
+        self.map_string_generator = map_string_generators[self.config.get("map_gen_format")](self.random,
+                                                                                             self.config,
+                                                                                             self.logger)
 
         self.logger.debug("Fuzzer initialized")
 
@@ -209,22 +209,61 @@ class Fuzzer:
 
         return return_code
 
-    def run(self, report: bool = True, clear_history: bool = True) -> None:
+    def run(self, report: bool = True, clear_history: bool = True, update_interval: int = 20) -> None:
         """
         Runs the fuzzer based on the configuration.
         :param report: Whether to generate a report.
         :param clear_history: Whether to clear the history before running.
+        :param update_interval: Interval in seconds to update the progress report.
         """
+
+        def progress_report():
+            """
+            Prints the progress of the fuzzer every update_interval seconds.
+            """
+            nonlocal last_progress_report
+            nonlocal update_interval
+            if time() - last_progress_report > update_interval:
+                last_progress_report = time()
+
+                time_progress = None
+                iteration_progress = None
+                if self.max_time > 0:
+                    time_progress = self.runtime() / self.max_time
+
+                if self.max_iterations > 0:
+                    iteration_progress = self.iteration / self.max_iterations
+
+                progress_update = ""
+
+                if time_progress is not None or iteration_progress is not None:
+                    relevant_progress = max(time_progress or 0, iteration_progress or 0)
+                    progress_bar = "#" * int(relevant_progress * 20)
+                    progress_bar += " " * (20 - len(progress_bar))
+                    progress_update = f"Progress: [{progress_bar}] {int(relevant_progress * 100)}%"
+
+                if iteration_progress is not None:
+                    progress_update += f"{' -- ' if progress_update != '' else ''} Iteration: {self.iteration}/{self.max_iterations}"
+
+                if time_progress is not None:
+                    progress_update += f"{' -- ' if progress_update != '' else ''} Time: {self.runtime()}/{self.max_time} seconds"
+
+                progress_update += f"{' -- ' if progress_update != '' else ''}Elapsed: {self.runtime()}"
+
+                self.logger.info(progress_update)
+
         if clear_history:
             self.history.clear()
 
         self.start_time = time()
+        last_progress_report = time()
 
         if self.max_time <= 0 and self.max_iterations <= 0:
             self.logger.warning("No limit specified, the fuzzer will run indefinitely!")
 
         while not self.limit_reached():
             self.run_jpacman()
+            progress_report()
 
         runtime = self.runtime()
 
