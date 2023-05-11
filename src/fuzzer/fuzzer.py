@@ -4,7 +4,9 @@ import os
 import subprocess
 from logging import Logger
 from random import Random
-from time import time
+from threading import Thread
+from time import time, sleep
+from typing import Callable
 
 from .enums import Action, MapItem
 from .map_string_generator import map_string_generators
@@ -297,16 +299,28 @@ class Fuzzer:
 
         return progress_string
 
-    def __write_partial_report(self, partial_reports: bool, partial_report_interval: int) -> None:
+    def __write_partial_report(self, partial_report_interval: int) -> None:
         """
         Writes a partial report.
-        :param partial_reports: Whether to generate partial report.
         :param partial_report_interval: Interval in seconds between partial reports.
         """
-        if partial_reports:
-            if time() - self.last_partial_report >= partial_report_interval:
-                self.last_partial_report = time()
-                self.generate_report(partial=True)
+        if time() - self.last_partial_report >= partial_report_interval:
+            self.last_partial_report = time()
+            self.generate_report(partial=True)
+
+    def __print_progress_bar_wrap(self, progress_func: Callable, suffix_func: Callable = None) -> None:
+        """
+        Wraps the progress bar printing function for use in a thread.
+        :param progress_func: Function to call to get the progress.
+        :param suffix_func: Function to call to get the suffix. Defaults to __get_progress_string.
+        """
+        sleep(0.01)
+
+        while not self.limit_reached():
+            self.__print_progress_bar(suffix=(suffix_func or self.__get_progress_string)(), progress=progress_func())
+            sleep(0.01)
+
+        self.__print_progress_bar(suffix=self.__get_progress_string(), progress=1, finished=True)
 
     def run(self, generate_report: bool = True, clear_history: bool = True, partial_report_interval: int = 20,
             partial_reports: bool = False, progress_bar: bool = True) -> None:
@@ -319,27 +333,19 @@ class Fuzzer:
         :param progress_bar: Whether to print a progress bar.
         """
 
-        def print_progress_bar():
-            """
-            Prints a progress bar to the console.
-            """
-            nonlocal progress_bar
-
-            if not progress_bar:
-                return
-
-            relevant_progress, time_progress, iteration_progress = self.__get_progress()
-
-            self.__print_progress_bar(suffix=self.__get_progress_string(), progress=relevant_progress)
+        def progress_func() -> float:
+            return self.__get_progress()[0]
 
         self.__prep_run(clear_history=clear_history)
 
-        # Start thread to print progress bar
+        if progress_bar:
+            progress_bar_thread = Thread(target=self.__print_progress_bar_wrap, args=(progress_func,))
+            progress_bar_thread.start()
 
         while not self.limit_reached():
             self.run_jpacman()
-            self.__write_partial_report(partial_reports=partial_reports,
-                                        partial_report_interval=partial_report_interval)
+            if partial_reports:
+                self.__write_partial_report(partial_report_interval=partial_report_interval)
 
         self.__finish_run(generate_report=generate_report)
 
@@ -371,25 +377,25 @@ class Fuzzer:
             """
             return hash_value in self.mutation_history
 
-        def print_progress_bar():
+        def progress_func() -> float:
             """
-            Prints a progress bar to the console.
+            Calculates the progress of the fuzzer.
+            :return: Progress as a float between 0 and 1
             """
             nonlocal possible_mutations
-            nonlocal progress_bar
 
-            if not progress_bar:
-                return
+            relevant_progress = len(self.mutation_history) / possible_mutations
 
-            mutation_progress = len(self.mutation_history) / possible_mutations
+            relevant_progress = max(relevant_progress, self.__get_progress()[0])
 
-            relevant_progress, time_progress, iteration_progress = self.__get_progress()
+            return relevant_progress
 
-            relevant_progress = max(mutation_progress, relevant_progress)
-
-            suffix = f" -- Mutations: {len(self.mutation_history)}/{possible_mutations}" + self.__get_progress_string()
-
-            self.__print_progress_bar(suffix=suffix, progress=relevant_progress)
+        def suffix_func() -> str:
+            """
+            Generates a progress string based on the current iteration.
+            :return: Progress string.
+            """
+            return f" -- Mutations: {len(self.mutation_history)}/{possible_mutations}" + self.__get_progress_string()
 
         def mutate(map_string: str, action_sequence: str, mutate_action: bool = False, depth: int = 0,
                    previous_iteration: int = None) -> None:
@@ -429,8 +435,8 @@ class Fuzzer:
                             if not self.limit_reached():
                                 self.run_jpacman(map_string=new_map_string, action_sequence=new_action_sequence,
                                                  note=note)
-                                self.__write_partial_report(partial_reports=partial_reports,
-                                                            partial_report_interval=partial_report_interval)
+                                if partial_reports:
+                                    self.__write_partial_report(partial_report_interval=partial_report_interval)
                             else:
                                 return
 
@@ -455,6 +461,10 @@ class Fuzzer:
         self.__prep_run(clear_history=clear_history)
 
         possible_mutations = (len(initial_map_string) * len(MapItem)) * (len(initial_action_sequence) * len(Action))
+
+        if progress_bar:
+            progress_bar_thread = Thread(target=self.__print_progress_bar_wrap, args=(progress_func, suffix_func))
+            progress_bar_thread.start()
 
         self.run_jpacman(map_string=initial_map_string, action_sequence=initial_action_sequence, note="Initial setup.")
 
