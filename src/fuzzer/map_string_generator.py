@@ -17,6 +17,8 @@ class BaseMapStringGenerator(ABC):
         self.logger = logger
         self.map_string = ""
 
+        self.logger.debug(f"{self.__class__.__name__} initialised.")
+
     def __call__(self, *args, **kwargs) -> str:
         """
         Generate a new map string, calling the generate method.

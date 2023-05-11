@@ -38,7 +38,7 @@ class Fuzzer:
         self.verbose: bool = False
 
         self.history: list = []
-        self.mutation_history: list = []  # Hashes of mutated maps + action sequences
+        self.mutation_history: list = []  # Hashes of mutated maps + action sequences   TODO: Is this always the same hash for the same map + action sequence?
 
         self.iteration: int = 0
         self.start_time: float = time()
@@ -56,7 +56,7 @@ class Fuzzer:
                                                                                              self.config,
                                                                                              self.logger)
 
-        self.logger.debug("Fuzzer initialized")
+        self.logger.debug("Fuzzer initialised.")
 
     def __init_logger(self) -> None:
         """
@@ -88,7 +88,7 @@ class Fuzzer:
 
         self.verbose = self.config.get("verbose") or False
 
-        self.logger.debug("Logger initialized")
+        self.logger.debug("Logger initialised.")
 
     def __init_random(self) -> None:
         """
@@ -96,7 +96,7 @@ class Fuzzer:
         """
         self.random = Random(self.config.get("seed") or None)
 
-        self.logger.debug(f"Random object initialized.")
+        self.logger.debug(f"Random object initialised.")
 
     def __verbose_log(self, message: str) -> None:
         """
