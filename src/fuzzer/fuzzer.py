@@ -153,6 +153,9 @@ class Fuzzer:
         for i in range(actual_action_sequence_length):
             action_sequence += self.__random_action().value
 
+        # Ensure action sequence ends with exit to prevent JPacman from hanging
+        action_sequence = action_sequence[:-1] + "E"
+
         self.__verbose_log(f"Action sequence generated: {action_sequence}")
 
         return action_sequence
