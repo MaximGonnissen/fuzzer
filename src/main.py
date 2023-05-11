@@ -15,4 +15,4 @@ if __name__ == '__main__':
 
     fuzzer = Fuzzer(config=config, max_iterations=args.max_iterations, max_time=args.max_time)
 
-    fuzzer.run(report=args.generate_report)
+    fuzzer.run(generate_report=args.generate_report)

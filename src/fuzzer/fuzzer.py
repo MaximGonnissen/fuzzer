@@ -36,9 +36,11 @@ class Fuzzer:
         self.verbose: bool = False
 
         self.history: list = []
+        self.mutation_history: list = []  # Hashes of mutated maps + action sequences
 
         self.iteration: int = 0
         self.start_time: float = time()
+        self.last_progress_report: float = time()
         self.max_iterations: int = max_iterations or -1
         self.max_time: int = max_time or -1
 
@@ -209,10 +211,29 @@ class Fuzzer:
 
         return return_code
 
-    def run(self, report: bool = True, clear_history: bool = True, update_interval: int = 20) -> None:
+    def __prep_run(self, clear_history: bool) -> None:
+        if clear_history:
+            self.history.clear()
+
+        self.start_time = time()
+        self.last_progress_report = time()
+
+        if self.max_time <= 0 and self.max_iterations <= 0:
+            self.logger.warning("No limit specified, the fuzzer will run indefinitely!")
+
+    def __finish_run(self, generate_report: bool) -> None:
+        runtime = self.runtime()
+
+        self.logger.info(
+            f"Fuzzer finished after {runtime}(/{self.max_time}) seconds | {self.iteration}(/{self.max_iterations}) iterations")
+
+        if generate_report:
+            self.generate_report(runtime=runtime)
+
+    def run(self, generate_report: bool = True, clear_history: bool = True, update_interval: int = 20) -> None:
         """
         Runs the fuzzer based on the configuration.
-        :param report: Whether to generate a report.
+        :param generate_report: Whether to generate a report.
         :param clear_history: Whether to clear the history before running.
         :param update_interval: Interval in seconds to update the progress report.
         """
@@ -221,10 +242,13 @@ class Fuzzer:
             """
             Prints the progress of the fuzzer every update_interval seconds.
             """
-            nonlocal last_progress_report
             nonlocal update_interval
-            if time() - last_progress_report > update_interval:
-                last_progress_report = time()
+
+            if update_interval == -1:
+                return
+
+            if time() - self.last_progress_report >= update_interval:
+                self.last_progress_report = time()
 
                 time_progress = None
                 iteration_progress = None
@@ -252,26 +276,11 @@ class Fuzzer:
 
                 self.logger.info(progress_update)
 
-        if clear_history:
-            self.history.clear()
-
-        self.start_time = time()
-        last_progress_report = time()
-
-        if self.max_time <= 0 and self.max_iterations <= 0:
-            self.logger.warning("No limit specified, the fuzzer will run indefinitely!")
+        self.__prep_run(clear_history=clear_history)
 
         while not self.limit_reached():
             self.run_jpacman()
             progress_report()
-
-        runtime = self.runtime()
-
-        self.logger.info(
-            f"Fuzzer finished after {runtime}(/{self.max_time}) seconds | {self.iteration}(/{self.max_iterations}) iterations")
-
-        if report:
-            self.generate_report(runtime=runtime)
 
     def generate_report(self, runtime: float = None) -> None:
         """
