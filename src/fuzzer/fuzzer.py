@@ -234,12 +234,14 @@ class Fuzzer:
         if generate_report:
             self.generate_report(runtime=runtime)
 
-    def run(self, generate_report: bool = True, clear_history: bool = True, update_interval: int = 20) -> None:
+    def run(self, generate_report: bool = True, clear_history: bool = True, update_interval: int = 20,
+            partial_reports: bool = False) -> None:
         """
         Runs the fuzzer based on the configuration.
         :param generate_report: Whether to generate a report.
         :param clear_history: Whether to clear the history before running.
         :param update_interval: Interval in seconds to update the progress report.
+        :param partial_reports: Whether to generate partial reports every update_interval seconds.
         """
 
         def progress_report():
@@ -280,6 +282,9 @@ class Fuzzer:
 
                 self.logger.info(progress_update)
 
+                if partial_reports:
+                    self.generate_report(partial=True)
+
         self.__prep_run(clear_history=clear_history)
 
         while not self.limit_reached():
@@ -289,7 +294,7 @@ class Fuzzer:
         self.__finish_run(generate_report=generate_report)
 
     def mutate_run(self, initial_map_string: str, initial_action_sequence: str, generate_report: bool = True,
-                   clear_history: bool = True, update_interval: int = 20) -> None:
+                   clear_history: bool = True, update_interval: int = 20, partial_reports: bool = False) -> None:
         """
         Performs a run with all possible mutations of the input map and action sequence.
         :param initial_map_string: Input map string.
@@ -297,6 +302,7 @@ class Fuzzer:
         :param generate_report: Whether to generate a report.
         :param clear_history: Whether to clear the history before running.
         :param update_interval: Interval in seconds to update the progress report.
+        :param partial_reports: Whether to generate partial reports every update_interval seconds.
         """
 
         def hash_inputs(new_map_string: str, new_action_sequence: str) -> int:
@@ -333,6 +339,9 @@ class Fuzzer:
                 progress_update = f"Progress: [{progress_bar}] {int(progress * 100)}% -- Elapsed: {self.runtime()}"
 
                 self.logger.info(progress_update)
+
+                if partial_reports:
+                    self.generate_report(partial=True)
 
         def mutate(map_string: str, action_sequence: str, mutate_action: bool = False, depth: int = 0,
                    previous_iteration: int = None) -> None:
@@ -405,9 +414,11 @@ class Fuzzer:
 
         self.__finish_run(generate_report=generate_report)
 
-    def generate_report(self, runtime: float = None) -> None:
+    def generate_report(self, runtime: float = None, partial: bool = False) -> None:
         """
         Generates a report.
+        :param runtime: Runtime of the fuzzer.
+        :param partial: Whether this is a partial report. (If true, the report will have a different name.)
         """
         report_start_time = time()
 
@@ -416,11 +427,9 @@ class Fuzzer:
         statistics = {
             "iterations": self.iteration,
             "exit codes": {},
-            "errors": {}
+            "errors": {},
+            "runtime": runtime or self.runtime()
         }
-
-        if runtime:
-            statistics["runtime"] = runtime
 
         exit_codes = [history_item[1] for history_item in self.history]
 
@@ -439,7 +448,7 @@ class Fuzzer:
         statistics["errors"] = {error: count for error, count in
                                 sorted(errors_counted.items(), key=lambda item: item[1], reverse=True)}
 
-        with open(os.path.join(output_path, "report.md"), "w") as report_file:
+        with open(os.path.join(output_path, f"report{'_temp' if partial else ''}.md"), "w") as report_file:
             report_file.write(f"# JPacman Fuzzer Report\n\n")
 
             report_file.write(f"## Table of Contents\n\n")
@@ -470,5 +479,6 @@ class Fuzzer:
 
             report_file.write(f"\n\n> Report generated in {time() - report_start_time} seconds.")
 
-        self.logger.info(f"Report generated in {time() - report_start_time} seconds")
-        self.logger.info(f"Report generated at {os.path.join(output_path, 'report.md')}")
+        if not partial:
+            self.logger.info(f"Report generated in {time() - report_start_time} seconds")
+            self.logger.info(f"Report generated at {os.path.join(output_path, 'report.md')}")
