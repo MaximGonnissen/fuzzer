@@ -297,6 +297,17 @@ class Fuzzer:
 
         return progress_string
 
+    def __write_partial_report(self, partial_reports: bool, partial_report_interval: int) -> None:
+        """
+        Writes a partial report.
+        :param partial_reports: Whether to generate partial report.
+        :param partial_report_interval: Interval in seconds between partial reports.
+        """
+        if partial_reports:
+            if time() - self.last_partial_report >= partial_report_interval:
+                self.last_partial_report = time()
+                self.generate_report(partial=True)
+
     def run(self, generate_report: bool = True, clear_history: bool = True, partial_report_interval: int = 20,
             partial_reports: bool = False, progress_bar: bool = True) -> None:
         """
@@ -308,17 +319,11 @@ class Fuzzer:
         :param progress_bar: Whether to print a progress bar.
         """
 
-        def progress_report():
+        def print_progress_bar():
             """
-            Updates a progress bar and writes a partial report to a file.
+            Prints a progress bar to the console.
             """
             nonlocal progress_bar
-            nonlocal partial_reports
-
-            if partial_reports:
-                if time() - self.last_partial_report >= partial_report_interval:
-                    self.last_partial_report = time()
-                    self.generate_report(partial=True)
 
             if not progress_bar:
                 return
@@ -329,9 +334,12 @@ class Fuzzer:
 
         self.__prep_run(clear_history=clear_history)
 
+        # Start thread to print progress bar
+
         while not self.limit_reached():
             self.run_jpacman()
-            progress_report()
+            self.__write_partial_report(partial_reports=partial_reports,
+                                        partial_report_interval=partial_report_interval)
 
         self.__finish_run(generate_report=generate_report)
 
@@ -363,18 +371,12 @@ class Fuzzer:
             """
             return hash_value in self.mutation_history
 
-        def progress_report():
+        def print_progress_bar():
             """
-            Prints the progress of the fuzzer every update_interval seconds.
+            Prints a progress bar to the console.
             """
-            nonlocal partial_report_interval
             nonlocal possible_mutations
             nonlocal progress_bar
-
-            if partial_reports:
-                if time() - self.last_partial_report >= partial_report_interval:
-                    self.last_partial_report = time()
-                    self.generate_report(partial=True)
 
             if not progress_bar:
                 return
@@ -427,7 +429,8 @@ class Fuzzer:
                             if not self.limit_reached():
                                 self.run_jpacman(map_string=new_map_string, action_sequence=new_action_sequence,
                                                  note=note)
-                                progress_report()
+                                self.__write_partial_report(partial_reports=partial_reports,
+                                                            partial_report_interval=partial_report_interval)
                             else:
                                 return
 
