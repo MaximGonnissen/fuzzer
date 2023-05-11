@@ -12,9 +12,10 @@ if __name__ == '__main__':
     parser.add_argument('--initial_map_path', type=str, help='Initial map path for a mutation run')
     parser.add_argument('--initial_action_sequence', type=str, help='Initial action sequence for a mutation run')
     parser.add_argument('--mutate_run', type=bool, help='Mutation run', default=False)
-    parser.add_argument('--update_interval', type=int, help='Progress update interval during a run', default=20)
+    parser.add_argument('--progress_bar', type=bool, help='Whether a progress bar should be displayed', default=True)
     parser.add_argument('--partial_reports', type=bool,
                         help='Generate partial reports during a run, every update interval', default=False)
+    parser.add_argument('--partial_report_interval', type=int, help='Partial report interval', default=20)
     args = parser.parse_args()
 
     config = json.load(open(args.config))
@@ -28,8 +29,8 @@ if __name__ == '__main__':
         initial_map_string = open(args.initial_map_path).read()
 
         fuzzer.mutate_run(initial_map_string=initial_map_string, initial_action_sequence=args.initial_action_sequence,
-                          generate_report=args.generate_report, update_interval=args.update_interval,
-                          partial_reports=args.partial_reports)
+                          generate_report=args.generate_report, partial_report_interval=args.partial_report_interval,
+                          partial_reports=args.partial_reports, progress_bar=args.progress_bar)
     else:
-        fuzzer.run(generate_report=args.generate_report, update_interval=args.update_interval,
-                   partial_reports=args.partial_reports)
+        fuzzer.run(generate_report=args.generate_report, partial_report_interval=args.partial_report_interval,
+                   partial_reports=args.partial_reports, progress_bar=args.progress_bar)

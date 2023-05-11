@@ -40,7 +40,7 @@ class Fuzzer:
 
         self.iteration: int = 0
         self.start_time: float = time()
-        self.last_progress_report: float = time()
+        self.last_partial_report: float = time()
         self.max_iterations: int = max_iterations or -1
         self.max_time: int = max_time or -1
 
@@ -234,56 +234,98 @@ class Fuzzer:
         if generate_report:
             self.generate_report(runtime=runtime)
 
-    def run(self, generate_report: bool = True, clear_history: bool = True, update_interval: int = 20,
-            partial_reports: bool = False) -> None:
+    def __print_progress_bar(self, prefix: str = '', suffix: str = '', progress: float = 0,
+                             finished: bool = False) -> None:
+        """
+        Prints a progress bar to the console.
+        :param prefix: Prefix to print before the progress bar.
+        :param suffix: Suffix to print after the progress bar.
+        :param progress: Progress as a float between 0 and 1.
+        :param finished: Whether the progress bar is finished.
+        """
+        progress_bar = '█' * int(progress * 20)
+        progress_bar += '▌' * (int(progress * 40) % 2)
+        progress_bar += '_' * (20 - len(progress_bar))
+        progress_bar = f'[{progress_bar}] {round(progress * 100, 2)}%'
+
+        if prefix and not prefix.endswith(' '):
+            prefix += ' '
+        if suffix and not suffix.startswith(' '):
+            suffix = ' ' + suffix
+
+        print(f"\r{prefix}{progress_bar}{suffix}", end='', flush=True)
+
+        if self.limit_reached() or finished:
+            print()
+
+    def __get_progress(self) -> (float, float | None, float | None):
+        """
+        Calculates the progress of the fuzzer.
+        :return: Progress as a float between 0 and 1, time & iteration progress as a float between 0 and 1 or None
+        """
+        time_progress = None
+        iteration_progress = None
+        if self.max_time > 0:
+            time_progress = self.runtime() / self.max_time
+
+        if self.max_iterations > 0:
+            iteration_progress = self.iteration / self.max_iterations
+
+        relevant_progress = 0
+
+        if time_progress is not None or iteration_progress is not None:
+            relevant_progress = max(time_progress or 0, iteration_progress or 0)
+
+        return relevant_progress, time_progress, iteration_progress
+
+    def __get_progress_string(self) -> str:
+        """
+        Generates a progress string based optionally on the time and iteration progress + the elapsed time.
+        :return: Progress string.
+        """
+        progress, time_progress, iteration_progress = self.__get_progress()
+
+        progress_string = ""
+
+        if iteration_progress is not None:
+            progress_string += f" -- Iteration: {self.iteration}/{self.max_iterations}"
+
+        if time_progress is not None:
+            progress_string += f" -- Time: {self.runtime()}/{self.max_time} seconds"
+
+        progress_string += f" -- Elapsed: {self.runtime()}"
+
+        return progress_string
+
+    def run(self, generate_report: bool = True, clear_history: bool = True, partial_report_interval: int = 20,
+            partial_reports: bool = False, progress_bar: bool = True) -> None:
         """
         Runs the fuzzer based on the configuration.
         :param generate_report: Whether to generate a report.
         :param clear_history: Whether to clear the history before running.
-        :param update_interval: Interval in seconds to update the progress report.
-        :param partial_reports: Whether to generate partial reports every update_interval seconds.
+        :param partial_report_interval: Interval in seconds between partial reports.
+        :param partial_reports: Whether to generate partial reports every partial_report_interval seconds.
+        :param progress_bar: Whether to print a progress bar.
         """
 
         def progress_report():
             """
-            Prints the progress of the fuzzer every update_interval seconds.
+            Updates a progress bar and writes a partial report to a file.
             """
-            nonlocal update_interval
+            nonlocal progress_bar
+            nonlocal partial_reports
 
-            if update_interval == -1:
+            if partial_reports:
+                if time() - self.last_partial_report >= partial_report_interval:
+                    self.last_partial_report = time()
+                    self.generate_report(partial=True)
+
+            if not progress_bar:
                 return
 
-            if time() - self.last_progress_report >= update_interval:
-                self.last_progress_report = time()
+            relevant_progress, time_progress, iteration_progress = self.__get_progress()
 
-                time_progress = None
-                iteration_progress = None
-                if self.max_time > 0:
-                    time_progress = self.runtime() / self.max_time
-
-                if self.max_iterations > 0:
-                    iteration_progress = self.iteration / self.max_iterations
-
-                progress_update = ""
-
-                if time_progress is not None or iteration_progress is not None:
-                    relevant_progress = max(time_progress or 0, iteration_progress or 0)
-                    progress_bar = "#" * int(relevant_progress * 20)
-                    progress_bar += " " * (20 - len(progress_bar))
-                    progress_update = f"Progress: [{progress_bar}] {int(relevant_progress * 100)}%"
-
-                if iteration_progress is not None:
-                    progress_update += f"{' -- ' if progress_update != '' else ''} Iteration: {self.iteration}/{self.max_iterations}"
-
-                if time_progress is not None:
-                    progress_update += f"{' -- ' if progress_update != '' else ''} Time: {self.runtime()}/{self.max_time} seconds"
-
-                progress_update += f"{' -- ' if progress_update != '' else ''}Elapsed: {self.runtime()}"
-
-                self.logger.info(progress_update)
-
-                if partial_reports:
-                    self.generate_report(partial=True)
+            self.__print_progress_bar(suffix=self.__get_progress_string(), progress=relevant_progress)
 
         self.__prep_run(clear_history=clear_history)
 
@@ -294,15 +336,17 @@ class Fuzzer:
         self.__finish_run(generate_report=generate_report)
 
     def mutate_run(self, initial_map_string: str, initial_action_sequence: str, generate_report: bool = True,
-                   clear_history: bool = True, update_interval: int = 20, partial_reports: bool = False) -> None:
+                   clear_history: bool = True, partial_report_interval: int = 20, partial_reports: bool = False,
+                   progress_bar: bool = True) -> None:
         """
         Performs a run with all possible mutations of the input map and action sequence.
         :param initial_map_string: Input map string.
         :param initial_action_sequence: Action sequence string.
         :param generate_report: Whether to generate a report.
         :param clear_history: Whether to clear the history before running.
-        :param update_interval: Interval in seconds to update the progress report.
-        :param partial_reports: Whether to generate partial reports every update_interval seconds.
+        :param partial_report_interval: Interval in seconds between partial reports.
+        :param partial_reports: Whether to generate partial reports every partial_report_interval seconds.
+        :param progress_bar: Whether to print a progress bar.
         """
 
         def hash_inputs(new_map_string: str, new_action_sequence: str) -> int:
@@ -323,25 +367,27 @@ class Fuzzer:
             """
             Prints the progress of the fuzzer every update_interval seconds.
             """
-            nonlocal update_interval
+            nonlocal partial_report_interval
             nonlocal possible_mutations
+            nonlocal progress_bar
 
-            if update_interval == -1:
+            if partial_reports:
+                if time() - self.last_partial_report >= partial_report_interval:
+                    self.last_partial_report = time()
+                    self.generate_report(partial=True)
+
+            if not progress_bar:
                 return
 
-            if time() - self.last_progress_report >= update_interval:
-                self.last_progress_report = time()
+            mutation_progress = len(self.mutation_history) / possible_mutations
 
-                progress = len(self.mutation_history) / possible_mutations
+            relevant_progress, time_progress, iteration_progress = self.__get_progress()
 
-                progress_bar = "#" * int(progress * 20)
-                progress_bar += " " * (20 - len(progress_bar))
-                progress_update = f"Progress: [{progress_bar}] {int(progress * 100)}% -- Elapsed: {self.runtime()}"
+            relevant_progress = max(mutation_progress, relevant_progress)
 
-                self.logger.info(progress_update)
+            suffix = f" -- Mutations: {len(self.mutation_history)}/{possible_mutations}" + self.__get_progress_string()
 
-                if partial_reports:
-                    self.generate_report(partial=True)
+            self.__print_progress_bar(suffix=suffix, progress=relevant_progress)
 
         def mutate(map_string: str, action_sequence: str, mutate_action: bool = False, depth: int = 0,
                    previous_iteration: int = None) -> None:
