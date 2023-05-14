@@ -486,6 +486,7 @@ class Fuzzer:
             "iterations": self.iteration,
             "exit codes": {},
             "errors": {},
+            "similar errors": {},
             "runtime": runtime or self.runtime()
         }
 
@@ -497,14 +498,33 @@ class Fuzzer:
         errors = [history_item[4] for history_item in self.history if history_item[1] != 0]
 
         errors_counted = {}
+        errors_same_short_key = {}
         for error in set(errors):
-            if len(error) > 50:
-                error = error[:50] + "..."
-            errors_counted[error] = errors.count(error)
+            error_short = error
+            if len(error) > 40:
+                error_short = error[:40] + "..."
+
+            count = errors.count(error)
+            same_count_to_add = count
+            if error_short not in errors_counted:
+                errors_counted[error_short] = count
+
+            else:
+                if count > errors_counted[error_short]:
+                    same_count_to_add = errors_counted[error_short]
+                    errors_counted[error_short] = count
+
+                if error_short not in errors_same_short_key:
+                    errors_same_short_key[error_short] = same_count_to_add
+                else:
+                    errors_same_short_key[error_short] += same_count_to_add
 
         # Sort errors by count
         statistics["errors"] = {error: count for error, count in
                                 sorted(errors_counted.items(), key=lambda item: item[1], reverse=True)}
+
+        statistics["similar errors"] = {error: count for error, count in
+                                        sorted(errors_same_short_key.items(), key=lambda item: item[1], reverse=True)}
 
         with open(os.path.join(output_path, f"report{'_temp' if partial else ''}.md"), "w") as report_file:
             report_file.write(f"# JPacman Fuzzer Report\n\n")
