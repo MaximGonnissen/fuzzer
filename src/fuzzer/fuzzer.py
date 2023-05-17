@@ -351,7 +351,7 @@ class Fuzzer:
 
     def mutate_run(self, initial_map_string: str, initial_action_sequence: str, generate_report: bool = True,
                    clear_history: bool = True, partial_report_interval: int = 20, partial_reports: bool = False,
-                   progress_bar: bool = True) -> None:
+                   progress_bar: bool = True, max_depth: int = 4) -> None:
         """
         Performs a run with all possible mutations of the input map and action sequence.
         :param initial_map_string: Input map string.
@@ -361,6 +361,7 @@ class Fuzzer:
         :param partial_report_interval: Interval in seconds between partial reports.
         :param partial_reports: Whether to generate partial reports every partial_report_interval seconds.
         :param progress_bar: Whether to print a progress bar.
+        :param max_depth: Maximum depth of the mutation tree.
         """
 
         def hash_inputs(new_map_string: str, new_action_sequence: str) -> int:
@@ -370,12 +371,12 @@ class Fuzzer:
             """
             return hash(new_map_string + new_action_sequence)
 
-        def previously_mutated(hash_value: int) -> bool:
+        def previously_mutated(some_hash_value: int) -> bool:
             """
             Checks if the input map and action sequence have been previously mutated.
             :return: Whether the input map and action sequence have been previously mutated.
             """
-            return hash_value in self.mutation_history
+            return some_hash_value in self.mutation_history
 
         def progress_func() -> float:
             """
@@ -407,28 +408,41 @@ class Fuzzer:
             :param depth: Current depth of the recursion.
             :param previous_iteration: Previous iteration. Used for the note.
             """
+            nonlocal max_depth
+
             new_map_string = map_string[:]
             new_action_sequence = action_sequence[:]
 
             previous_iteration = previous_iteration or self.iteration
-            note = ""
+            note = f"New mutation call from iteration {previous_iteration}. Currently at depth {depth}.\n"
+
+            rejected = 0
 
             for i in range(len(map_string)):
                 for j in range(len(action_sequence)):
                     for map_item in MapItem:
                         if not mutate_action:
-                            note = f"From iteration {previous_iteration}: Mutated {map_string[i]} at index {i} to {map_item.value} ({map_item})."
-                            new_map_string = map_string[:i] + map_item.value + map_string[i + 1:]
+                            note += f"From iteration {previous_iteration}: Mutated {map_string[i]} at index {i} to {map_item.value} ({map_item})."
+                            new_map_string = map_string[:i] + map_item.value + map_string[
+                                                                               i + 1:]  # TODO: Check if this works properly. All rejected at depth 1? (Wrong index? Edge case with index 0?)
                         for action in Action:
                             if mutate_action:
-                                note = f"From iteration {previous_iteration}: Mutated {action_sequence[j]} at index {j} to {action.value} ({action})."
+                                note += f"From iteration {previous_iteration}: Mutated {action_sequence[j]} at index {j} to {action.value} ({action})."
                                 new_action_sequence = new_action_sequence[:j] + action.value + new_action_sequence[
                                                                                                j + 1:]
 
                             hash_value = hash_inputs(new_map_string, new_action_sequence)
 
                             if previously_mutated(hash_value):
+                                self.__verbose_log(
+                                    f"Rejected duplicate mutation:\nMap:\n{new_map_string}\nAction Sequence:\n{new_action_sequence}\n\nHash: {hash_value}\n")
+                                note = ""
+                                rejected += 1
                                 continue
+
+                            if rejected > 0:
+                                note += f"\nRejected {rejected} duplicate previous mutations."
+                                rejected = 0
 
                             self.mutation_history.append(hash_value)
 
@@ -441,9 +455,11 @@ class Fuzzer:
                                 return
 
                             previous_iteration = self.iteration
+                            note = ""
 
-                            mutate(new_map_string, new_action_sequence, mutate_action=not mutate_action,
-                                   depth=depth + 1, previous_iteration=previous_iteration)
+                            if depth < max_depth:
+                                mutate(new_map_string, new_action_sequence, mutate_action=not mutate_action,
+                                       depth=depth + 1, previous_iteration=previous_iteration)
 
                             if not mutate_action:
                                 # No need to mutate the action sequence if we're mutating the map.
@@ -467,6 +483,9 @@ class Fuzzer:
             progress_bar_thread.start()
 
         self.run_jpacman(map_string=initial_map_string, action_sequence=initial_action_sequence, note="Initial setup.")
+
+        hash_value = hash_inputs(initial_map_string, initial_action_sequence)
+        self.mutation_history.append(hash_value)
 
         mutate(initial_map_string, initial_action_sequence)
 
