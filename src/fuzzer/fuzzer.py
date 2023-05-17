@@ -423,8 +423,7 @@ class Fuzzer:
                     for map_item in MapItem:
                         if not mutate_action:
                             note += f"From iteration {previous_iteration}: Mutated {map_string[i]} at index {i} to {map_item.value} ({map_item})."
-                            new_map_string = map_string[:i] + map_item.value + map_string[
-                                                                               i + 1:]  # TODO: Check if this works properly. All rejected at depth 1? (Wrong index? Edge case with index 0?)
+                            new_map_string = map_string[:i] + map_item.value + map_string[i + 1:]
                         for action in Action:
                             if mutate_action:
                                 note += f"From iteration {previous_iteration}: Mutated {action_sequence[j]} at index {j} to {action.value} ({action})."
