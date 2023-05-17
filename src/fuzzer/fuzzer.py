@@ -438,6 +438,9 @@ class Fuzzer:
                                     f"Rejected duplicate mutation:\nMap:\n{new_map_string}\nAction Sequence:\n{new_action_sequence}\n\nHash: {hash_value}\n")
                                 note = ""
                                 rejected += 1
+                                if not mutate_action:
+                                    # No need to mutate the action sequence if we're mutating the map.
+                                    break
                                 continue
 
                             if rejected > 0:
@@ -484,8 +487,7 @@ class Fuzzer:
 
         self.run_jpacman(map_string=initial_map_string, action_sequence=initial_action_sequence, note="Initial setup.")
 
-        hash_value = hash_inputs(initial_map_string, initial_action_sequence)
-        self.mutation_history.append(hash_value)
+        self.mutation_history.append(hash_inputs(initial_map_string, initial_action_sequence))
 
         mutate(initial_map_string, initial_action_sequence)
 
