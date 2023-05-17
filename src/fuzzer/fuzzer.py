@@ -419,6 +419,8 @@ class Fuzzer:
             rejected = 0
 
             for i in range(len(map_string)):
+                if map_string[i] == "\n":
+                    continue
                 for j in range(len(action_sequence)):
                     for map_item in MapItem:
                         if not mutate_action:
