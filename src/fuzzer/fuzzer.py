@@ -569,10 +569,8 @@ class Fuzzer:
                 copy_entry = entry.copy()
                 for i in range(len(entry)):
                     if copy_entry[i] not in ["", None]:
-                        if str(copy_entry[i]).count("\n") > 1:
-                            copy_entry[i] = ("`" + str(copy_entry[i]).replace('\n', '`<br>`')[:-1]).replace("``", "")
-                        else:
-                            copy_entry[i] = "`" + str(copy_entry[i]).replace('\n', "\\n") + "`"
+                        copy_entry[i] = str(copy_entry[i]).rstrip("\n")
+                        copy_entry[i] = ("`" + copy_entry[i].replace('\n', '`<br>`') + "`").replace("``", "")
                 report_file.write(
                     f"| {copy_entry[0]} | {copy_entry[1]} | {copy_entry[2]} | {copy_entry[3]} | {copy_entry[4]} | {copy_entry[5]} |\n")
 
