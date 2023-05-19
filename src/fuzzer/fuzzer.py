@@ -38,7 +38,7 @@ class Fuzzer:
         self.verbose: bool = False
 
         self.history: list = []
-        self.mutation_history: list = []  # Hashes of mutated maps + action sequences   TODO: Is this always the same hash for the same map + action sequence?
+        self.mutation_history: list = []  # Hashes of mutated maps + action sequences
 
         self.iteration: int = 0
         self.start_time: float = time()
