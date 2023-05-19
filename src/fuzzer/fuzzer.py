@@ -494,11 +494,12 @@ class Fuzzer:
 
         self.__finish_run(generate_report=generate_report)
 
-    def generate_report(self, runtime: float = None, partial: bool = False) -> None:
+    def generate_report(self, runtime: float = None, partial: bool = False, name: str = None) -> None:
         """
         Generates a report.
         :param runtime: Runtime of the fuzzer.
         :param partial: Whether this is a partial report. (If true, the report will have a different name.)
+        :param name: Name of the report. (If None, a default name will be used: "report")
         """
         report_start_time = time()
 
@@ -548,7 +549,8 @@ class Fuzzer:
         statistics["similar errors"] = {error: count for error, count in
                                         sorted(errors_same_short_key.items(), key=lambda item: item[1], reverse=True)}
 
-        with open(os.path.join(output_path, f"report{'_temp' if partial else ''}.md"), "w") as report_file:
+        with open(os.path.join(output_path, f"{name if name else 'report'}{'_temp' if partial else ''}.md"),
+                  "w") as report_file:
             report_file.write(f"# JPacman Fuzzer Report\n\n")
 
             report_file.write(f"## Table of Contents\n\n")
